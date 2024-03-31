@@ -280,22 +280,6 @@ class MBR_filter(Ui_mainwindow):
         
         
 
-class DragDropLineEdit(QtWidgets.QLineEdit):
-    def __init__(self, parent=None):
-        super(DragDropLineEdit, self).__init__(parent)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            self.setText(url.toLocalFile())
-            break
-
 
 class SplashScreen(QtWidgets.QDialog):
     def __init__(self):
