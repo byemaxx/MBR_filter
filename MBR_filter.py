@@ -146,6 +146,11 @@ class MBR_filter(Ui_mainwindow):
         else:
             self.meta_table = pd.read_csv(meta_path, sep='\t')
             self.no_meta = False
+            # check if at least 2 columns in the meta table
+            if self.meta_table.shape[1] < 2:
+                QtWidgets.QMessageBox.warning(None, "Warning", "The meta table should have at least 2 columns.\n\
+                The first column is the sample name and the second column is the meta data.")
+                return
             self.meta_table.set_index(self.meta_table.columns[0], inplace=True)
             self.meta_list = self.meta_table.columns.tolist()+ ['MS/MS Only']
             
