@@ -23,7 +23,11 @@ class MBR_filter(Ui_mainwindow):
         mainwindow.resize(900, 600)
         # set icon: qt_resource_data
         self.icon = QIcon(":/icon/icon.png")
-        mainwindow.setWindowIcon(self.icon)         
+        mainwindow.setWindowIcon(self.icon)   
+        
+        # reset title
+        mainwindow.setWindowTitle("MBR filter V1.1")
+        
         self.pep_table = None
         self.meta_table = None
         self.no_meta = False
@@ -151,6 +155,11 @@ class MBR_filter(Ui_mainwindow):
                 QtWidgets.QMessageBox.warning(None, "Warning", "The meta table should have at least 2 columns.\n\
                 The first column is the sample name and the second column is the meta data.")
                 return
+            # check if some rows are duplicated, remove the duplicated rows
+            if self.meta_table.duplicated().sum() > 0:
+                self.meta_table = self.meta_table.drop_duplicates()
+                QtWidgets.QMessageBox.warning(None, "Warning", "Some rows in the meta table are duplicated and removed.")
+                
             self.meta_table.set_index(self.meta_table.columns[0], inplace=True)
             self.meta_list = self.meta_table.columns.tolist()+ ['MS/MS Only']
             
@@ -255,13 +264,35 @@ class MBR_filter(Ui_mainwindow):
         pep_df = pep_df.reset_index(drop=True)
         return pep_df
         
-    
+    def check_meta_match(self):
+        if self.no_meta:
+            return True
+        else:
+            sampel_list_from_meta = self.meta_table.index.tolist()
+            sample_list_from_pep = [col.replace(self.intensity_cols_start, '').strip() for col in self.pep_table.columns if col.startswith(self.intensity_cols_start)]
+            # remove "" in sample_list_from_pep
+            sample_list_from_pep = [sample for sample in sample_list_from_pep if sample != ""]
+            # compare if they are the same, if not, return False, and show the difference
+            if sampel_list_from_meta != sample_list_from_pep:
+                # find the difference in each list
+                diff_meta = list(set(sampel_list_from_meta) - set(sample_list_from_pep))
+                diff_pep = list(set(sample_list_from_pep) - set(sampel_list_from_meta))
+                msg = "The samples in the pep table and the meta table are not the same." 
+                msg += f"\n\nThe samples in the meta table but not in the pep table: {diff_meta}" if len(diff_meta) > 0 else ""
+                msg += f"\n\nThe samples in the pep table but not in the meta table: {diff_pep}" if len(diff_pep) > 0 else ""
+                QtWidgets.QMessageBox.warning(None, "Warning", msg)
+                return False
+        
     def run_filter(self):
         if self.pep_table is None:
             QtWidgets.QMessageBox.warning(None, "Warning", "Please load the pep table first.")
             return None
         
         self.read_params()
+        
+        if self.check_meta_match() is False:
+            return
+        
         try:
             if self.filter_meta == 'MS/MS Only':
                 pep_df = self.filter_only_MSMS()
