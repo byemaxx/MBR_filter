@@ -31,7 +31,7 @@ class MBR_filter(Ui_mainwindow):
         mainwindow.setWindowIcon(self.icon)   
         
         # reset title
-        mainwindow.setWindowTitle("MBR filter V1.2")
+        mainwindow.setWindowTitle("MBR Filter V1.2")
         
         self.pep_table = None
         self.meta_table = None
@@ -277,8 +277,8 @@ class MBR_filter(Ui_mainwindow):
             sample_list_from_pep = [col.replace(self.intensity_cols_start, '').strip() for col in self.pep_table.columns if col.startswith(self.intensity_cols_start)]
             # remove "" in sample_list_from_pep
             sample_list_from_pep = [sample for sample in sample_list_from_pep if sample != ""]
-            # compare if they are the same, if not, return False, and show the difference
-            if sampel_list_from_meta != sample_list_from_pep:
+            # compare if they are the same (ignore the order of samples)
+            if set(sampel_list_from_meta) != set(sample_list_from_pep):
                 # find the difference in each list
                 diff_meta = list(set(sampel_list_from_meta) - set(sample_list_from_pep))
                 diff_pep = list(set(sample_list_from_pep) - set(sampel_list_from_meta))
