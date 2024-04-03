@@ -8,6 +8,11 @@ from PyQt5.QtGui import QDragEnterEvent, QDropEvent
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QPixmap
+# try to import qdarktheme, if not exist, skip it
+try:
+    import qdarktheme
+except ImportError:
+    pass
 
 import sys
 import os
@@ -26,7 +31,7 @@ class MBR_filter(Ui_mainwindow):
         mainwindow.setWindowIcon(self.icon)   
         
         # reset title
-        mainwindow.setWindowTitle("MBR filter V1.1")
+        mainwindow.setWindowTitle("MBR filter V1.2")
         
         self.pep_table = None
         self.meta_table = None
@@ -374,7 +379,9 @@ class FileDragDropLineEdit(QLineEdit):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    
+    if 'qdarktheme' in sys.modules:
+        qdarktheme.setup_theme(theme='auto')
+
     splash = SplashScreen()
     splash.show()
     app.processEvents()  # make sure the splash screen is displayed
