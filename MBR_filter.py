@@ -31,7 +31,7 @@ class MBR_filter(Ui_mainwindow):
         mainwindow.setWindowIcon(self.icon)   
         
         # reset title
-        mainwindow.setWindowTitle("MBR Filter V1.2")
+        mainwindow.setWindowTitle("MBR Filter V1.3")
         
         self.pep_table = None
         self.meta_table = None
@@ -220,13 +220,18 @@ class MBR_filter(Ui_mainwindow):
             intensity_cols_group = []
             detct_cols_group = []
             for sample in samples:
+                sample = sample.strip()
                 for col in intensity_cols:
-                    if sample in col:
+                    if sample == col.replace(self.intensity_cols_start, '').strip():
                         intensity_cols_group.append(col)
                 for col in detct_cols:
-                    if sample in col:
+                    if sample == col.replace(self.detct_cols_start, '').strip():
                         detct_cols_group.append(col)
-                        
+
+            # check if the intensity columns and the detection columns have the same samples
+            len_lisy = [len(intensity_cols_group), len(detct_cols_group), len(samples)]
+            if len(set(len_lisy)) != 1:
+                raise ValueError('Error: The number of samples in the intensity columns and the detection columns are not the same.')
             # print(intensity_cols_group)
             # print(detct_cols_group) 
             
@@ -312,7 +317,7 @@ class MBR_filter(Ui_mainwindow):
             QtWidgets.QMessageBox.warning(None, "Warning", f"Filtering is failed.\n{str(e)}")
             return
         
-        msg = f'Filtering is done.\n{self.pep_table.shape[0] - pep_df.shape[0]} rows are removed due to all the intensities are 0.\n{pep_df.shape[0]} rows were remained.'
+        msg = f'Filtering is done.\n\n[{self.pep_table.shape[0] - pep_df.shape[0]}] rows are removed due to all the intensities are Zero.\n\n[{pep_df.shape[0]}] rows were remained.'
         print(msg)
         # save the filtered table
         pep_df.to_csv(self.save_path, sep='\t', index=False)
