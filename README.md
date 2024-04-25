@@ -9,3 +9,4 @@
 - pandas
 
 - pyqt5
+- pyqtdarktheme (optional)

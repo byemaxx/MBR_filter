@@ -16,6 +16,7 @@ except ImportError:
 
 import sys
 import os
+import pathlib
 import pandas as pd
 
 
@@ -31,7 +32,7 @@ class MBR_filter(Ui_mainwindow):
         mainwindow.setWindowIcon(self.icon)   
         
         # reset title
-        mainwindow.setWindowTitle("MBR Filter V1.3")
+        mainwindow.setWindowTitle("MBR Filter V1.4")
         
         self.pep_table = None
         self.meta_table = None
@@ -45,6 +46,7 @@ class MBR_filter(Ui_mainwindow):
         self.mini_num = None
         self.filter_flag = None
         self.save_path = None
+        self.remove_zero = True
         
         # chaed to page 1
         self.default_path = os.path.expanduser("~/Desktop")
@@ -52,15 +54,21 @@ class MBR_filter(Ui_mainwindow):
         
         self.lineEdit_pep_path = self.make_line_edit_drag_drop(self.lineEdit_pep_path, mode='file')
         self.lineEdit_meta_path = self.make_line_edit_drag_drop(self.lineEdit_meta_path, mode='file')
-        self.lineEdit_save_path = self.make_line_edit_drag_drop(self.lineEdit_save_path, mode='folder', default_filename='filtered_pep.tsv')
+        self.lineEdit_save_path = self.make_line_edit_drag_drop(self.lineEdit_save_path, mode='folder', default_filename='MBR_Filtered_pep.tsv')
         
         self.pushButton_open_pep_path.clicked.connect(self.open_pep_path)
         self.pushButton_open_meta_path.clicked.connect(self.open_meta_path)
         self.pushButton_open_save_path.clicked.connect(self.open_save_path)
         self.pushButton_load_tables.clicked.connect(self.run_load_table)
         self.pushButton_run_filter.clicked.connect(self.run_filter)
+        self.checkBox_remove_zero.stateChanged.connect(self.remove_zero_changed)
         
-
+    def remove_zero_changed(self):
+        if self.checkBox_remove_zero.isChecked():
+            self.remove_zero = True
+        else:
+            self.remove_zero = False
+            
     def open_pep_path(self):
         file_path = QtWidgets.QFileDialog.getOpenFileName(None, "Select pep file", self.default_path, "pep files (*.tsv *.csv, *.txt)")
         if file_path[0]:
@@ -77,7 +85,7 @@ class MBR_filter(Ui_mainwindow):
 
     def open_save_path(self):
         # select a folder, enable to input a file name, default file name is "filtered_pep.tsv"
-        default_file_path = os.path.join(self.default_path, "filtered_pep.tsv")
+        default_file_path = os.path.join(self.default_path, "MBR_Filtered_pep.tsv")
         file_path = QtWidgets.QFileDialog.getSaveFileName(None, "Select save path", default_file_path, "tsv files (*.tsv)", options=QtWidgets.QFileDialog.DontConfirmOverwrite)
         if file_path[0]:
             self.lineEdit_save_path.setText(file_path[0])
@@ -110,7 +118,7 @@ class MBR_filter(Ui_mainwindow):
         # add "filtered_" to the file name
         pep_path = self.lineEdit_pep_path.text()
         file_name = os.path.basename(pep_path)
-        file_name = "filtered_" + file_name
+        file_name = "MBR_Filtered_" + file_name
         save_path = os.path.join(os.path.dirname(pep_path), file_name)
         self.lineEdit_save_path.setText(save_path)
         
@@ -249,8 +257,10 @@ class MBR_filter(Ui_mainwindow):
                 detct_col = col.replace(self.intensity_cols_start, self.detct_cols_start)
                 pep_df.loc[rows_to_update & (~is_filter_flag[detct_col]), col] = 0
                 
-        # remove the rows that all the intensities are 0
-        pep_df = pep_df.loc[pep_df[intensity_cols].sum(axis=1) > 0]
+        if self.remove_zero:
+            # remove the rows that all the intensities are 0
+            pep_df = pep_df.loc[pep_df[intensity_cols].sum(axis=1) > 0]
+        
         pep_df = pep_df.reset_index(drop=True)
         return pep_df
 
@@ -269,8 +279,10 @@ class MBR_filter(Ui_mainwindow):
         print(sample_list)
         for i in range(len(intensity_cols)):
             pep_df.loc[pep_df[detct_cols[i]] != self.filter_flag, intensity_cols[i]] = 0
-        # remove the rows that all the intensities are 0
-        pep_df = pep_df.loc[pep_df[intensity_cols].sum(axis=1) > 0]
+        if self.remove_zero:
+            # remove the rows that all the intensities are 0
+            pep_df = pep_df.loc[pep_df[intensity_cols].sum(axis=1) > 0]
+            
         pep_df = pep_df.reset_index(drop=True)
         return pep_df
         
@@ -303,6 +315,11 @@ class MBR_filter(Ui_mainwindow):
         if self.check_meta_match() is False:
             return
         
+        if self.remove_zero:
+            print("Remove the rows that all the intensities are Zero.")
+        else:
+            print("Do not remove the rows that all the intensities are Zero.")
+            
         try:
             if self.filter_meta == 'MS/MS Only':
                 pep_df = self.filter_only_MSMS()
@@ -316,8 +333,11 @@ class MBR_filter(Ui_mainwindow):
         except Exception as e:
             QtWidgets.QMessageBox.warning(None, "Warning", f"Filtering is failed.\n{str(e)}")
             return
+        if self.remove_zero:
+            msg = f'Filtering is done.\n\n[{self.pep_table.shape[0] - pep_df.shape[0]}] rows are removed due to all the intensities are Zero.\n\n[{pep_df.shape[0]}] rows were remained.'
+        else:
+            msg = f'Filtering is done.\n\n[{self.pep_table.shape[0] - pep_df.shape[0]}] rows are removed.\n\n[{pep_df.shape[0]}] rows were remained.'
         
-        msg = f'Filtering is done.\n\n[{self.pep_table.shape[0] - pep_df.shape[0]}] rows are removed due to all the intensities are Zero.\n\n[{pep_df.shape[0]}] rows were remained.'
         print(msg)
         # save the filtered table
         pep_df.to_csv(self.save_path, sep='\t', index=False)
